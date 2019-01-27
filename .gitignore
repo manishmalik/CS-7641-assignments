@@ -1,2 +1,8 @@
 *.pyc
 __pycache__
+# ignore reports
+*.docx
+*.tex
+*.pdf
+#ignoring any analysis
+*.png
