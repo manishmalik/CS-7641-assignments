@@ -1,9 +1,9 @@
 import argparse
-from datetime import datetime
 import logging
-import numpy as np
+from datetime import datetime
 
 import experiments
+import numpy as np
 from data import loader
 
 # Configure logging
@@ -39,7 +39,7 @@ if __name__ == '__main__':
 
     seed = args.seed
     if seed is None:
-        seed = np.random.randint(0, (2 ** 32) - 1)
+        seed = np.random.randint(0, 10000)
         print("Using seed {}".format(seed))
 
     print("Loading data")
@@ -51,9 +51,9 @@ if __name__ == '__main__':
             'readable_name': 'Credit Default',
         }
     ds2_details = {
-            'data': loader.PenDigitData(verbose=verbose, seed=seed),
-            'name': 'pen_digits',
-            'readable_name': 'Handwritten Digits',
+        'data': loader.LetterRecognitionData(verbose=verbose, seed=seed),
+        'name': 'letter_recognition',
+        'readable_name': 'Letter Recognition',
         }
 
     if verbose:
@@ -63,8 +63,8 @@ if __name__ == '__main__':
     timings = {}
 
     datasets = [
-        ds1_details,
         ds2_details
+        # ds2_details
     ]
 
     experiment_details = []
