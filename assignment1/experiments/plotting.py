@@ -1,12 +1,13 @@
+import glob
 import itertools
 import logging
-import glob
 import re
 
+import matplotlib as mpl
 import numpy as np
 import pandas as pd
 
-import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 
 # Configure logging
