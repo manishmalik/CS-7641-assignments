@@ -95,7 +95,7 @@ class DataLoader(ABC):
         self.log("Feature dimensions: {}", self.features.shape)
         self.log("Classes dimensions: {}", self.classes.shape)
         self.log("Class values: {}", np.unique(self.classes))
-        class_dist = np.histogram(self.classes)[0]
+        class_dist = np.histogram(self.classes, bins=np.unique(self.classes))[0]
         class_dist = class_dist[np.nonzero(class_dist)]
         self.log("Class distribution: {}", class_dist)
         self.log("Class distribution (%): {}", (class_dist / self.classes.shape[0]) * 100)
