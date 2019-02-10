@@ -1,10 +1,6 @@
-import warnings
-
-import numpy as np
-import sklearn
-
 import experiments
 import learners
+import numpy as np
 
 
 class SVMExperiment(experiments.BaseExperiment):
@@ -28,20 +24,21 @@ class SVMExperiment(experiments.BaseExperiment):
         # the various graphs
         #
         # Dataset 1:
-        # best_params_linear = {'C': 0.5, 'class_weight': 'balanced', 'loss': 'squared_hinge',
-        #                       'max_iter': 1478, 'tol': 0.06000001}
-        # best_params_rbf = {'C': 2.0, 'class_weight': 'balanced', 'decision_function_shape': 'ovo',
-        #                    'gamma': 0.05555555555555555, 'max_iter': -1, 'tol': 1e-08}
-        # Dataset 2:
-        # best_params_linear = {'C': 1.0, 'class_weight': 'balanced', 'loss': 'hinge', 'dual': True,
-        #                       'max_iter': 70, 'tol': 0.08000001}
-        # best_params_rbf = {'C': 1.5, 'class_weight': 'balanced', 'decision_function_shape': 'ovo',
-        #                    'gamma': 0.125, 'max_iter': -1, 'tol': 0.07000001}
+        # best_params_linear = {'C': 0.001, 'class_weight': 'balanced', 'loss': 'squared_hinge',
+        #                       'max_iter': 42, 'tol': 0.02000001}
+        # best_params_rbf = {'C': 0.751, 'class_weight': 'balanced', 'decision_function_shape': 'ovo',
+        #                    'gamma': 0.043478261, 'max_iter': -1, 'tol': 0.09000001}
+        # Dataset 2 (letter recog):
+        best_params_linear = {'C': 2.251, 'class_weight': 'balanced', 'loss': 'squared_hinge', 'dual': True,
+                              'max_iter': 63, 'tol': 0.00000001}
+        best_params_rbf = {'C': 2.251, 'class_weight': 'balanced', 'decision_function_shape': 'ovo',
+                           'gamma': 0.2625, 'max_iter': -1, 'tol': 0.02000001, 'kernel': 'rbf'}
 
         # Linear SVM
         params = {'SVM__max_iter': iters, 'SVM__tol': tols, 'SVM__class_weight': ['balanced'],
                   'SVM__C': C_values}
-        complexity_param = {'name': 'SVM__C', 'display_name': 'Penalty', 'values': np.arange(0.001, 2.5, 0.1)}
+        complexity_param = {'name': 'SVM__max_iter', 'display_name': 'Maximum iterations',
+                            'values': np.arange(1, 200, 10)}
 
         iteration_details = {
             'x_scale': 'log',

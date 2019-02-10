@@ -64,7 +64,6 @@ if __name__ == '__main__':
 
     datasets = [
         ds2_details
-        # ds2_details
     ]
 
     experiment_details = []
