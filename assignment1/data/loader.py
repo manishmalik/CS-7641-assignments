@@ -36,6 +36,10 @@ def plot_pairplot(title, df, class_column_name=None):
     return plt
 
 
+def plot_histogram(title, classes, class_column_name=None):
+    ax = sns.distplot(classes, bins=26, axlabel="Class Distributions", label="Ratio of classes")
+    return ax
+
 # Adapted from https://stats.stackexchange.com/questions/239973/a-general-measure-of-data-set-imbalance
 def is_balanced(seq):
     n = len(seq)
@@ -95,7 +99,7 @@ class DataLoader(ABC):
         self.log("Feature dimensions: {}", self.features.shape)
         self.log("Classes dimensions: {}", self.classes.shape)
         self.log("Class values: {}", np.unique(self.classes))
-        class_dist = np.histogram(self.classes)[0]
+        class_dist = np.histogram(self.classes, bins=np.unique(self.classes))[0]
         class_dist = class_dist[np.nonzero(class_dist)]
         self.log("Class distribution: {}", class_dist)
         self.log("Class distribution (%): {}", (class_dist / self.classes.shape[0]) * 100)
@@ -439,5 +443,8 @@ if __name__ == '__main__':
 
     lr_data = LetterRecognitionData(verbose=True, path='letter-recognition.data.txt')
     lr_data.load_and_process()
+    plt = plot_histogram("Pair plot", lr_data.classes)
+    plt.figure.savefig('{}/images/distPlot.png'.format(OUTPUT_DIRECTORY), format='png', dpi=150)
+
     # ca_data = CreditApprovalData(verbose=True)
     # ca_data.load_and_process()

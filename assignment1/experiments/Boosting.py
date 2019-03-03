@@ -1,10 +1,6 @@
-import warnings
-
-import numpy as np
-import sklearn
-
 import experiments
 import learners
+import numpy as np
 
 
 class BoostingExperiment(experiments.BaseExperiment):
@@ -14,10 +10,10 @@ class BoostingExperiment(experiments.BaseExperiment):
 
     def perform(self):
         # Adapted from https://github.com/JonathanTay/CS-7641-assignment-1/blob/master/Boosting.py
-        max_depths = np.arange(1, 11, 1)
+        max_depths = np.arange(1, 24, 3)
 
         # NOTE: Criterion may need to be adjusted here depending on the dataset
-        base = learners.DTLearner(criterion='entropy', class_weight='balanced', max_depth=10,
+        base = learners.DTLearner(criterion='entropy', class_weight='balanced', max_depth=5,
                                   random_state=self._details.seed)
         of_base = learners.DTLearner(criterion='entropy', class_weight='balanced', random_state=self._details.seed)
 

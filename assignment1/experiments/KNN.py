@@ -1,10 +1,6 @@
-import warnings
-
-import numpy as np
-import sklearn
-
 import experiments
 import learners
+import numpy as np
 
 
 class KNNExperiment(experiments.BaseExperiment):
@@ -23,7 +19,7 @@ class KNNExperiment(experiments.BaseExperiment):
         # the various graphs
         #
         # Dataset 1:
-        # best_params = {'metric': 'manhattan', 'n_neighbors': 7, 'weights': 'uniform'}
+        best_params = {'metric': 'euclidean', 'n_neighbors': 19, 'weights': 'uniform'}
         #
         # Dataset 1:
         # best_params = {'metric': 'euclidean', 'n_neighbors': 4, 'weights': 'uniform'}
