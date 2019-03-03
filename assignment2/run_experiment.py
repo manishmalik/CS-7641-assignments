@@ -55,16 +55,21 @@ if __name__ == '__main__':
         #     'name': 'htru2',
         #     'readable_name': 'HTRU2',
         # },
+        # {
+        #     'data': loader.CreditApprovalData(verbose=verbose, seed=seed),
+        #     'name': 'credit_approval',
+        #     'readable_name': 'Credit Approval',
+        # },
         {
-            'data': loader.CreditApprovalData(verbose=verbose, seed=seed),
-            'name': 'credit_approval',
-            'readable_name': 'Credit Approval',
-        },
-        {
-            'data': loader.PenDigitData(verbose=verbose, seed=seed),
-            'name': 'pen_digits',
-            'readable_name': 'Handwritten Digits',
+            'data': loader.CreditDefaultData(verbose=verbose, seed=seed),
+            'name': 'credit_default',
+            'readable_name': 'Credit Default',
         }
+        # {
+        #     'data': loader.LetterRecognitionData(verbose=verbose, seed=seed),
+        #     'name': 'letter_recognition',
+        #     'readable_name': 'Letter Recognition',
+        # }
         # {
         #     'data': loader.SpamData(verbose=verbose, seed=seed),
         #     'name': 'spam',

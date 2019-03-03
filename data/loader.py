@@ -1,11 +1,14 @@
 import copy
 import logging
-import pandas as pd
-import numpy as np
 
+import matplotlib as mpl
+import numpy as np
+import pandas as pd
+
+mpl.use('Agg')
 from collections import Counter
 
-from sklearn import preprocessing, utils
+from sklearn import preprocessing
 import sklearn.model_selection as ms
 from scipy.sparse import isspmatrix
 from sklearn.pipeline import Pipeline
@@ -13,7 +16,6 @@ from sklearn.preprocessing import StandardScaler
 
 import os
 import seaborn as sns
-
 from abc import ABC, abstractmethod
 
 # TODO: Move this to a common lib?
@@ -40,8 +42,8 @@ def is_balanced(seq):
     classes = [(clas, float(count)) for clas, count in Counter(seq).items()]
     k = len(classes)
 
-    H = -sum([(count/n) * np.log((count/n)) for clas, count in classes])
-    return H/np.log(k) > 0.75
+    H = -sum([(count / n) * np.log((count / n)) for clas, count in classes])
+    return H / np.log(k) > 0.75
 
 
 class DataLoader(ABC):
@@ -264,7 +266,7 @@ class CreditApprovalData(DataLoader):
         self._data = pd.concat([self._data, vec_data], axis=1)
 
         # Clean any ?'s from the unencoded columns
-        self._data = self._data[( self._data[[1, 2, 7]] != '?').all(axis=1)]
+        self._data = self._data[(self._data[[1, 2, 7]] != '?').all(axis=1)]
 
     def pre_training_adjustment(self, train_features, train_classes):
         return train_features, train_classes
@@ -377,9 +379,94 @@ class StatlogVehicleData(DataLoader):
         return train_features, train_classes
 
 
+class ElectricalStabilityData(DataLoader):
+    def __init__(self, path='data/Electrical stability.csv', verbose=False, seed=1):
+        super().__init__(path, verbose, seed)
+
+    def _load_data(self):
+        self._data = pd.read_csv(self._path, header=0)
+
+    def data_name(self):
+        return 'ElectricalStabilityData'
+
+    def class_column_name(self):
+        return 'stabf'
+
+    def _preprocess_data(self):
+        to_encode = ['stabf']
+        label_encoder = preprocessing.LabelEncoder()
+
+        df = self._data[to_encode]
+        df = df.apply(label_encoder.fit_transform)
+
+        self._data = self._data.drop(to_encode, axis=1)
+        self._data = pd.concat([self._data, df], axis=1)
+
+    def pre_training_adjustment(self, train_features, train_classes):
+        return train_features, train_classes
+
+
+class LetterRecognitionData(DataLoader):
+    def __init__(self, path='data/letter-recognition.data.txt', verbose=False, seed=1):
+        super().__init__(path, verbose, seed)
+
+    def _load_data(self):
+        self._data = pd.read_csv(self._path, header=None)
+
+    def data_name(self):
+        return 'LetterRecognitionData'
+
+    def class_column_name(self):
+        return '0'
+
+    def _preprocess_data(self):
+        to_encode = [0]
+        label_encoder = preprocessing.LabelEncoder()
+
+        df = self._data[to_encode]
+        df = df.apply(label_encoder.fit_transform)
+
+        self._data = self._data.drop(to_encode, axis=1)
+        self._data = pd.concat([self._data, df], axis=1)
+
+    def pre_training_adjustment(self, train_features, train_classes):
+        return train_features, train_classes
+
+    def dump_test_train_val(self, test_size=0.2, random_state=123):
+        ds_train_x, ds_test_x, ds_train_y, ds_test_y = ms.train_test_split(self.features, self.classes,
+                                                                           test_size=test_size,
+                                                                           random_state=random_state,
+                                                                           stratify=self.classes)
+        print("ds_train_x: {}, ds_train_y: {}, ds_test_x: {}, ds_test_y: {}".format(ds_train_x, ds_train_y, ds_test_x, ds_test_y))
+        pipe = Pipeline([('Scale', preprocessing.StandardScaler())])
+        train_x = pipe.fit_transform(ds_train_x, ds_train_y)
+        train_y = np.atleast_2d(ds_train_y).T
+        test_x = pipe.transform(ds_test_x)
+        test_y = np.atleast_2d(ds_test_y).T
+        print("train_x: {}, train_y: {}, test_x: {}, test_y: {}".format(train_x, train_y, test_x, test_y))
+
+        train_x, validate_x, train_y, validate_y = ms.train_test_split(train_x, train_y,
+                                                                       test_size=test_size, random_state=random_state,
+                                                                       stratify=train_y)
+        test_y = pd.DataFrame(test_y)
+        train_y = pd.DataFrame(train_y)
+        validate_y = pd.DataFrame(validate_y)
+        print("train_y: {}, test_y: {}, validate_y: {}".format(train_y, test_y, validate_y))
+
+        tst = pd.concat([pd.DataFrame(test_x), test_y], axis=1)
+        trg = pd.concat([pd.DataFrame(train_x), train_y], axis=1)
+        val = pd.concat([pd.DataFrame(validate_x), validate_y], axis=1)
+
+        tst.to_csv('data/{}_test.csv'.format(self.data_name()), index=False, header=False)
+        trg.to_csv('data/{}_train.csv'.format(self.data_name()), index=False, header=False)
+        val.to_csv('data/{}_validate.csv'.format(self.data_name()), index=False, header=False)
+
+
 if __name__ == '__main__':
-    cd_data = CreditDefaultData(verbose=True)
+    cd_data = CreditDefaultData(verbose=True, path='default of credit card clients.xls')
     cd_data.load_and_process()
 
-    ca_data = CreditApprovalData(verbose=True)
-    ca_data.load_and_process()
+    lr_data = LetterRecognitionData(verbose=True, path='letter-recognition.data.txt')
+    lr_data.load_and_process()
+    # ca_data = CreditApprovalData(verbose=True)
+    # ca_data.load_and_process()
