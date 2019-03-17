@@ -1,15 +1,10 @@
-import os
-
-import pandas as pd
+import experiments
 import numpy as np
-from sklearn.base import TransformerMixin,BaseEstimator
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
+import pandas as pd
+from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
-from sklearn.model_selection import GridSearchCV
-
-import experiments
+from sklearn.pipeline import Pipeline
 
 
 # http://datascience.stackexchange.com/questions/6683/feature-selection-using-feature-importances-in-random-forests-with-scikit-learn
@@ -34,7 +29,7 @@ class RFExperiment(experiments.BaseExperiment):
         self._nn_arch = [(50, 50), (50,), (25,), (25, 25), (100, 25, 100)]
         self._nn_reg = [10 ** -x for x in range(1, 5)]
         self._clusters = [2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40]
-        self._dims = [2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]
+        self._dims = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
 
     def experiment_name(self):
         return 'RF'

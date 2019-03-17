@@ -1,15 +1,13 @@
 import argparse
-import json
 import logging
-import sys
-
 import random as rand
-import numpy as np
+import sys
+from datetime import datetime
 
 import experiments
-from experiments import plotting
-from datetime import datetime
+import numpy as np
 from data import loader
+from experiments import plotting
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -88,18 +86,18 @@ if __name__ == '__main__':
 
     datasets = []
     dataset1_details = {
-            'data': loader.StatlogVehicleData(verbose=verbose, seed=seed),
-            'name': 'statlog_vehicle',
-            'readable_name': 'Statlog Vehicle',
-            'best_nn_params': {'NN__activation': ['relu'], 'NN__alpha': [1.0],
-                               'NN__hidden_layer_sizes': [(36, 36)], 'NN__learning_rate_init': [0.016]}
+        'data': loader.CreditDefaultData(verbose=verbose, seed=seed),
+        'name': 'credit_default',
+        'readable_name': 'Credit Default',
+        'best_nn_params': {'NN__activation': ['relu'], 'NN__alpha': [0.000000001],
+                           'NN__hidden_layer_sizes': [(23, 23)], 'NN__learning_rate_init': [0.128]}
         }
     dataset2_details = {
-            'data': loader.HTRU2Data(verbose=verbose, seed=seed),
-            'name': 'htru2',
-            'readable_name': 'HTRU2',
-            'best_nn_params': {'NN__activation': ['relu'], 'NN__alpha': [1.0],
-                               'NN__hidden_layer_sizes': [(36, 36)], 'NN__learning_rate_init': [0.016]}
+        'data': loader.LetterRecognitionData(verbose=verbose, seed=seed),
+        'name': 'letter_recognition',
+        'readable_name': 'Letter Recognition',
+        'best_nn_params': {'NN__activation': ['relu'], 'NN__alpha': [0.0316],
+                           'NN__hidden_layer_sizes': [(32, 32, 32)], 'NN__learning_rate_init': [0.004]}
     }
     if args.dataset1:
         datasets.append(dataset1_details)
