@@ -16,6 +16,7 @@ from kneed import KneeLocator
 
 from matplotlib.ticker import NullFormatter, FormatStrFormatter
 from os.path import basename
+import glob
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
