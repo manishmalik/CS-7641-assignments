@@ -1,9 +1,9 @@
 import sys
-
 import numpy as np
 from gym import utils
 from gym.envs.toy_text import discrete
 from six import StringIO
+
 
 LEFT = 0
 DOWN = 1
@@ -15,7 +15,7 @@ MAPS = {
         "SFFF",
         "FHFH",
         "FFFH",
-        "HFFG"
+        "HHFG"
     ],
     "8x8": [
         "SFFFFFFF",
@@ -23,13 +23,44 @@ MAPS = {
         "FFFHFFFF",
         "FFFFFHFF",
         "FFFHFFFF",
-        "FHHFFFHF",
-        "FHFFHFHF",
+        "FHHFFHFF",
+        "FHFFHHFF",
         "FFFHFFFG"
+    ],
+    "12x12": [
+        "SFFFFHFFFFFF",
+        "FFFFFFFFFFFF",
+        "FHFFFFFFFFFF",
+        "FFFFFFFFHFFF",
+        "FFFHFFFFHFFF",
+        "FFFFFFHHHFFF",
+        "HHFHFFFFHFFF",
+        "FFFHFFFFHFFF",
+        "FFFFFFFFFFFF",
+        "FFFHFFFFFFFF",
+        "FFHFHFFFFFFF",
+        "FHFFFFFHHFFG"
+    ],
+    "15x15": [
+        "SFFFFFHFFFFFFFF",
+        "FFFFFFFFFFFFFFF",
+        "FFFFFFFFFFFFFFF",
+        "FFFFFFFFFFFFFFF",
+        "FFFFFFFFFFFFFFF",
+        "FFFHFFFFFFHFFFF",
+        "FFFFFFFFFFHFFFF",
+        "FFFFFFFFFHHHFFF",
+        "HHHFFFFFFFHFFFF",
+        "FFFFHFFFFFHFFFF",
+        "FFFFFFFFFFFFFFF",
+        "FFFFHFFFFFFFFFF",
+        "FFFFFFFFFFFFFFF",
+        "FHFHFHFFFFFFFFF",
+        "FFHFFFFFFHHFFFG"
     ],
     "20x20": [
         "SFFFFFFHHHFFFFFFFFFF",
-        "FFFFFFFFFFFFFFFFHHFF",
+        "FFFFFFFFFFFFFFFFFFFF",
         "FFFHFFFFFFFHHFFFFFFF",
         "FFFFFHFFFFFFFFFFHHFF",
         "FFFFFHFFFFFFFFFFHHFF",
@@ -48,7 +79,7 @@ MAPS = {
         "FHHFFFHFFFFHFFFFFHFF",
         "FHHFHFHFFFFFFFFFFFFF",
         "FFFHFFFFFHFFFFHHFHFG"
-    ]
+    ],
 }
 
 
@@ -77,14 +108,16 @@ class RewardingFrozenLakeEnv(discrete.DiscreteEnv):
     G : goal, where the frisbee is located
 
     The episode ends when you reach the goal or fall in a hole.
-    You receive a reward of 1 if you reach the goal, -1 for falling in a hole, and a small negative reward otherwise.
+    There are configurable rewards for reaching the goal, falling in a hole, and simply taking a step.
     The hole and step rewards are configurable when creating an instance of the problem.
 
     """
 
     metadata = {'render.modes': ['human', 'ansi']}
 
-    def __init__(self, desc=None, map_name="4x4", rewarding=True, step_reward=-0.1, hole_reward=-1, is_slippery=True):
+    def __init__(self, desc=None, map_name="4x4", rewarding=True, step_rew=-0.1, hole_rew=-1, goal_rew=1, \
+                 is_slippery=True, step_prob=0.5):
+
         if desc is None and map_name is None:
             raise ValueError('Must provide either desc or map_name')
         elif desc is None:
@@ -92,10 +125,13 @@ class RewardingFrozenLakeEnv(discrete.DiscreteEnv):
         self.desc = desc = np.asarray(desc, dtype='c')
         self.nrow, self.ncol = nrow, ncol = desc.shape
         self.reward_range = (0, 1)
-        self.step_reward = step_reward
-        self.hole_reward = hole_reward
+        self.step_reward = step_rew
+        self.hole_reward = hole_rew
+        self.goal_reward = goal_rew
         self.rewarding = rewarding
         self.is_slippery = is_slippery
+        self.step_prob = min(step_prob, 1.0)
+        self.slip_prob = (1.0 - self.step_prob) / 2
 
         nA = 4
         nS = nrow * ncol
@@ -109,6 +145,7 @@ class RewardingFrozenLakeEnv(discrete.DiscreteEnv):
             return row * ncol + col
 
         def inc(row, col, a):
+
             if a == 0:  # left
                 col = max(col - 1, 0)
             elif a == 1:  # down
@@ -125,8 +162,8 @@ class RewardingFrozenLakeEnv(discrete.DiscreteEnv):
                 for a in range(4):
                     li = P[s][a]
                     letter = desc[row, col]
-                    if letter in b'GH':
-                        li.append((1.0, s, 0, True))
+                    if letter in b'G':
+                        li.append((1.0, s, self.goal_reward, True))
                     else:
                         if is_slippery:
                             for b in [(a - 1) % 4, a, (a + 1) % 4]:
@@ -136,11 +173,14 @@ class RewardingFrozenLakeEnv(discrete.DiscreteEnv):
                                 done = bytes(newletter) in b'GH'
                                 rew = float(newletter == b'G')
                                 if self.rewarding:
-                                    if newletter == b'F':
+                                    if newletter in b'FS':
                                         rew = self.step_reward
                                     elif newletter == b'H':
                                         rew = self.hole_reward
-                                li.append((1.0 / 3.0, newstate, rew, done))
+                                if b == a:
+                                    li.append((self.step_prob, newstate, rew, done))
+                                else:
+                                    li.append((self.slip_prob, newstate, rew, done))
                         else:
                             newrow, newcol = inc(row, col, a)
                             newstate = to_s(newrow, newcol)
@@ -148,7 +188,7 @@ class RewardingFrozenLakeEnv(discrete.DiscreteEnv):
                             done = bytes(newletter) in b'GH'
                             rew = float(newletter == b'G')
                             if self.rewarding:
-                                if newletter == b'F':
+                                if newletter in b'FS':
                                     rew = self.step_reward
                                 elif newletter == b'H':
                                     rew = self.hole_reward
@@ -157,6 +197,7 @@ class RewardingFrozenLakeEnv(discrete.DiscreteEnv):
         super(RewardingFrozenLakeEnv, self).__init__(nS, nA, P, isd)
 
     def render(self, mode='human'):
+
         outfile = StringIO() if mode == 'ansi' else sys.stdout
 
         row, col = self.s // self.ncol, self.s % self.ncol
@@ -173,21 +214,25 @@ class RewardingFrozenLakeEnv(discrete.DiscreteEnv):
             return outfile
 
     def colors(self):
+
         return {
-            b'S': 'green',
+            b'S': 'black',
             b'F': 'skyblue',
-            b'H': 'black',
-            b'G': 'gold',
+            b'H': 'darkred',
+            b'G': 'green',
         }
 
     def directions(self):
+
         return {
+            4: '',
             3: '⬆',
             2: '➡',
             1: '⬇',
-            0: '⬅'
+            0: '⬅',
         }
 
     def new_instance(self):
-        return RewardingFrozenLakeEnv(desc=self.desc, rewarding=self.rewarding, step_reward=self.step_reward,
-                                      hole_reward=self.hole_reward, is_slippery=self.is_slippery)
+        return RewardingFrozenLakeEnv(desc=self.desc, rewarding=self.rewarding, step_rew=self.step_reward,
+                                      hole_rew=self.hole_reward, goal_rew=self.goal_reward,
+                                      is_slippery=self.is_slippery)

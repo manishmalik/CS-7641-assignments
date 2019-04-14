@@ -3,10 +3,16 @@ import time
 import numpy as np
 from .base import BaseSolver, one_step_lookahead
 
+# Constants (default values unless provided by caller)
+DISCOUNT = 0.9
+THETA = 0.0001
+
 
 # Adapted from https://github.com/dennybritz/reinforcement-learning/blob/master/DP/Policy%20Iteration%20Solution.ipynb
 class PolicyIterationSolver(BaseSolver):
-    def __init__(self, env, discount_factor=0.9, max_policy_eval_steps=None, verbose=False):
+
+    def __init__(self, env, discount_factor=DISCOUNT, max_policy_eval_steps=None, theta=THETA, verbose=False):
+
         self._env = env.unwrapped
 
         self._policy = np.ones([self._env.nS, self._env.nA]) / self._env.nA
@@ -16,17 +22,19 @@ class PolicyIterationSolver(BaseSolver):
         self._step_times = []
         self._policy_stable = False
         self._max_policy_eval_steps = max_policy_eval_steps
+        self._theta = theta
 
         super(PolicyIterationSolver, self).__init__(verbose)
 
     def step(self):
+
         start_time = time.clock()
         # Evaluate the current policy
         V = self.evaluate_policy(self._policy, discount_factor=self._discount_factor,
-                                 max_steps=self._max_policy_eval_steps)
+                                 max_steps=self._max_policy_eval_steps, theta=self._theta)
 
-        # Will be set to false if we make any changes to the policy
-        self._policy_stable = True
+        # Set to True if steps > 10, false otherwise; will be set to False if we make any changes to the policy
+        self._policy_stable = self._steps > 10
 
         delta = 0
         reward = 0  # float('-inf')
@@ -43,17 +51,12 @@ class PolicyIterationSolver(BaseSolver):
 
             # Calculate delta across all states seen so far
             delta = max(delta, np.abs(best_action_value - V[s]))
-            # reward = max(reward, best_action_value)
             reward += best_action_value
 
             # Greedily update the policy
             if chosen_a != best_a:
                 self._policy_stable = False
             self._policy[s] = np.eye(self._env.nA)[best_a]
-
-        # If we've gone through a few steps but have not improved, consider us converged
-        if delta > self._last_delta and self._steps > 10:
-            self._policy_stable = True
 
         self._steps += 1
         self._step_times.append(time.clock() - start_time)
@@ -62,6 +65,7 @@ class PolicyIterationSolver(BaseSolver):
         return self._policy, V, self._steps, self._step_times[-1], reward, delta, self._policy_stable
 
     def reset(self):
+
         self._policy = np.ones([self._env.nS, self._env.nA]) / self._env.nA
         self._steps = 0
         self._step_times = []

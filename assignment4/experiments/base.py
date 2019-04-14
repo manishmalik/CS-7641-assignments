@@ -12,21 +12,23 @@ from abc import ABC, abstractmethod
 from .plotting import plot_policy_map, plot_value_map
 import solvers
 
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# TODO: Move this to a common lib?
-OUTPUT_DIRECTORY = './output'
+# Constants (default values unless provided by caller)
+OUTPUT_DIR = 'output'
+MAX_STEPS = 2000
+NUM_TRIALS = 100
 
-if not os.path.exists(OUTPUT_DIRECTORY):
-    os.makedirs(OUTPUT_DIRECTORY)
-if not os.path.exists('{}/images'.format(OUTPUT_DIRECTORY)):
-    os.makedirs('{}/images'.format(OUTPUT_DIRECTORY))
-
-MAX_STEP_COUNT = 1000
+if not os.path.exists(os.path.join(os.getcwd(), OUTPUT_DIR)):
+    os.makedirs(os.path.join(os.getcwd(), OUTPUT_DIR))
+if not os.path.exists(os.path.join(os.path.join(os.getcwd(), OUTPUT_DIR), 'images')):
+    os.makedirs(os.path.join(os.path.join(os.getcwd(), OUTPUT_DIR), 'images'))
 
 
 class EvaluationStats(object):
+
     def __init__(self):
         self.rewards = list()
         self.stat_history = list()
@@ -77,6 +79,7 @@ class EvaluationStats(object):
 
 
 class ExperimentStats(object):
+
     def __init__(self):
         self.policies = list()
         self.vs = list()
@@ -177,6 +180,7 @@ class ExperimentStats(object):
 
 
 class ExperimentDetails(object):
+
     def __init__(self, env, env_name, env_readable_name, threads, seed):
         self.env = env
         self.env_name = env_name
@@ -186,9 +190,11 @@ class ExperimentDetails(object):
 
 
 class BaseExperiment(ABC):
-    def __init__(self, details, verbose=False):
+
+    def __init__(self, details, verbose=False, max_steps=MAX_STEPS):
         self._details = details
         self._verbose = verbose
+        self._max_steps = max_steps
 
     @abstractmethod
     def perform(self):
@@ -212,27 +218,24 @@ class BaseExperiment(ABC):
         optimal_policy = None
         best_reward = float('-inf')
 
-        while not convergence_check_fn(solver, step_count) and step_count < MAX_STEP_COUNT:
+        while not convergence_check_fn(solver, step_count) and step_count < self._max_steps:
             policy, v, steps, step_time, reward, delta, converged = solver.step()
-            # print('{} {}'.format(reward, best_reward))
             if reward > best_reward:
                 best_reward = reward
                 optimal_policy = policy
 
             stats.add(policy, v, steps, step_time, reward, delta, converged)
-            # if self._verbose:
-            #     self.log("Step {}: delta={}, converged={}".format(step_count, delta, converged))
             step_count += 1
+        self.log('Steps: {} delta: {} converged: {}'.format(step_count, delta, converged))
 
         stats.elapsed_time = time.clock() - t
         stats.optimal_policy = stats.policies[-1]  # optimal_policy
         return stats
 
-    def run_policy_and_collect(self, solver, policy, times=100):
+    def run_policy_and_collect(self, solver, policy, num_trials=NUM_TRIALS):
         stats = EvaluationStats()
-        for i in range(times):
-            # stats.add(np.sum(solver.run_policy(policy)))
-            stats.add(np.mean(solver.run_policy(policy)))
+        for i in range(num_trials):
+            stats.add(np.mean(solver.run_policy(policy, self._max_steps)))
         stats.compute()
 
         return stats

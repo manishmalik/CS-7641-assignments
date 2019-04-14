@@ -3,21 +3,40 @@ import os
 import time
 import numpy as np
 
-from .base import BaseExperiment, OUTPUT_DIRECTORY
+from .base import BaseExperiment, OUTPUT_DIR
 
 import solvers
 
-if not os.path.exists(OUTPUT_DIRECTORY + '/PI'):
-    os.makedirs(OUTPUT_DIRECTORY + '/PI')
-if not os.path.exists(OUTPUT_DIRECTORY + '/PI/pkl'):
-    os.makedirs(OUTPUT_DIRECTORY + '/PI/pkl')
-if not os.path.exists(OUTPUT_DIRECTORY + '/images/PI'):
-    os.makedirs(OUTPUT_DIRECTORY + '/images/PI')
+# Constants (default values unless provided by caller)
+MAX_STEPS = 2000
+NUM_TRIALS = 100
+DISCOUNT_MIN = 0
+DISCOUNT_MAX = 0.9
+NUM_DISCOUNTS = 10
+THETA = 0.0001
+
+PI_DIR = os.path.join(OUTPUT_DIR, 'PI')
+if not os.path.exists(PI_DIR):
+    os.makedirs(PI_DIR)
+PKL_DIR = os.path.join(PI_DIR, 'pkl')
+if not os.path.exists(PKL_DIR):
+    os.makedirs(PKL_DIR)
+IMG_DIR = os.path.join(os.path.join(OUTPUT_DIR, 'images'), 'PI')
+if not os.path.exists(IMG_DIR):
+    os.makedirs(IMG_DIR)
 
 
 class PolicyIterationExperiment(BaseExperiment):
-    def __init__(self, details, verbose=False):
-        super(PolicyIterationExperiment, self).__init__(details, verbose)
+
+    def __init__(self, details, verbose=False, max_steps=MAX_STEPS, num_trials=NUM_TRIALS, theta=THETA,
+                 discounts=[DISCOUNT_MIN, DISCOUNT_MAX, NUM_DISCOUNTS]):
+        super(PolicyIterationExperiment, self).__init__(details, verbose, max_steps)
+        self._num_trials = num_trials
+        self._max_steps = max_steps
+        self._theta = theta
+        self._discount_min = discounts[0]
+        self._discount_max = discounts[1]
+        self._num_discounts = discounts[2]
 
     def convergence_check_fn(self, solver, step_count):
         return solver.has_converged()
@@ -27,11 +46,12 @@ class PolicyIterationExperiment(BaseExperiment):
         self._details.env.reset()
         map_desc = self._details.env.unwrapped.desc
 
-        grid_file_name = '{}/PI/{}_grid.csv'.format(OUTPUT_DIRECTORY, self._details.env_name)
+        grid_file_name = os.path.join(PI_DIR, '{}_grid.csv'.format(self._details.env_name))
         with open(grid_file_name, 'w') as f:
             f.write("params,time,steps,reward_mean,reward_median,reward_min,reward_max,reward_std\n")
 
-        discount_factors = np.round(np.linspace(0, 0.9, num=10), 2)
+        discount_factors = np.round(np.linspace(self._discount_min, max(self._discount_min, self._discount_max), \
+                                                num=self._num_discounts), 2)
         dims = len(discount_factors)
         self.log("Searching PI in {} dimensions".format(dims))
 
@@ -41,23 +61,25 @@ class PolicyIterationExperiment(BaseExperiment):
             self.log("{}/{} Processing PI with discount factor {}".format(runs, dims, discount_factor))
 
             p = solvers.PolicyIterationSolver(self._details.env, discount_factor=discount_factor,
-                                              max_policy_eval_steps=3000, verbose=self._verbose)
+                                              max_policy_eval_steps=self._max_steps, theta=self._theta,
+                                              verbose=self._verbose)
 
             stats = self.run_solver_and_collect(p, self.convergence_check_fn)
 
             self.log("Took {} steps".format(len(stats.steps)))
-            stats.to_csv('{}/PI/{}_{}.csv'.format(OUTPUT_DIRECTORY, self._details.env_name, discount_factor))
-            stats.pickle_results('{}/PI/pkl/{}_{}_{}.pkl'.format(OUTPUT_DIRECTORY, self._details.env_name,
-                                                                 discount_factor, '{}'), map_desc.shape)
-            stats.plot_policies_on_map('{}/images/PI/{}_{}_{}.png'.format(OUTPUT_DIRECTORY, self._details.env_name,
-                                                                          discount_factor, '{}_{}'),
+            stats.to_csv(os.path.join(PI_DIR, '{}_{}.csv'.format(self._details.env_name, discount_factor)))
+            stats.pickle_results(
+                os.path.join(PKL_DIR, '{}_{}_{}.pkl'.format(self._details.env_name, discount_factor, '{}')),
+                map_desc.shape)
+            stats.plot_policies_on_map(
+                os.path.join(IMG_DIR, '{}_{}_{}.png'.format(self._details.env_name, discount_factor, '{}_{}')),
                                        map_desc, self._details.env.colors(), self._details.env.directions(),
                                        'Policy Iteration', 'Step', self._details, only_last=True)
 
-            optimal_policy_stats = self.run_policy_and_collect(p, stats.optimal_policy)
+            optimal_policy_stats = self.run_policy_and_collect(p, stats.optimal_policy, self._num_trials)
             self.log('{}'.format(optimal_policy_stats))
-            optimal_policy_stats.to_csv('{}/PI/{}_{}_optimal.csv'.format(OUTPUT_DIRECTORY, self._details.env_name,
-                                                                         discount_factor))
+            optimal_policy_stats.to_csv(
+                os.path.join(PI_DIR, '{}_{}_optimal.csv'.format(self._details.env_name, discount_factor)))
             with open(grid_file_name, 'a') as f:
                 f.write('"{}",{},{},{},{},{},{},{}\n'.format(
                     json.dumps({'discount_factor': discount_factor}).replace('"', '""'),

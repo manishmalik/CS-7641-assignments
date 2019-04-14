@@ -4,6 +4,7 @@ from gym import utils
 from gym.envs.toy_text import discrete
 from six import StringIO
 
+
 UP = 0
 RIGHT = 1
 DOWN = 2
@@ -33,12 +34,17 @@ class WindyCliffWalkingEnv(discrete.DiscreteEnv):
     Each time step incurs -1 reward, and stepping into the cliff incurs -100 reward
     and a reset to the start. An episode terminates when the agent reaches the goal  (earning 100 pts in the process).
     """
+
     metadata = {'render.modes': ['human', 'ansi']}
 
-    def __init__(self, wind_prob=0.1):
+    def __init__(self, wind_prob=0.1, step_rew=-1, fall_rew=-100, goal_rew=100):
+
         self.shape = (4, 12)
         self.start_state_index = np.ravel_multi_index((3, 0), self.shape)
         self.wind_prob = wind_prob
+        self.step_rew = step_rew
+        self.fall_rew = fall_rew
+        self.goal_rew = goal_rew
 
         self.desc = np.asarray([
             "RRRRRRRRRRRR",
@@ -83,6 +89,7 @@ class WindyCliffWalkingEnv(discrete.DiscreteEnv):
         :param coord:
         :return:
         """
+
         coord[0] = min(coord[0], self.shape[0] - 1)
         coord[0] = max(coord[0], 0)
         coord[1] = min(coord[1], self.shape[1] - 1)
@@ -96,6 +103,7 @@ class WindyCliffWalkingEnv(discrete.DiscreteEnv):
         :param delta: Change in position for transition
         :return: (1.0, new_state, reward, done)
         """
+
         # # IF the wind is blowing, move the agent down
         # wind_blows = np.random.uniform(0.0, 1.0) <= self.wind_prob
         # if wind_blows:
@@ -107,15 +115,16 @@ class WindyCliffWalkingEnv(discrete.DiscreteEnv):
         new_position = self._limit_coordinates(new_position).astype(int)
         new_state = np.ravel_multi_index(tuple(new_position), self.shape)
         if self._cliff[tuple(new_position)]:
-            return [(1.0, self.start_state_index, -100, False)]
+            return [(1.0, self.start_state_index, self.fall_rew, False)]
 
         terminal_state = (self.shape[0] - 1, self.shape[1] - 1)
         is_done = tuple(new_position) == terminal_state
         if is_done:
-            return [(1.0, new_state, 100, is_done)]
-        return [(1.0, new_state, -1, is_done)]
+            return [(1.0, new_state, self.goal_rew, is_done)]
+        return [(1.0, new_state, self.step_rew, is_done)]
 
     def render(self, mode='human'):
+
         outfile = StringIO() if mode == 'ansi' else sys.stdout
 
         row, col = self.s // 12, self.s % 4
@@ -132,21 +141,24 @@ class WindyCliffWalkingEnv(discrete.DiscreteEnv):
             return outfile
 
     def colors(self):
+
         return {
-            b'S': 'green',
-            b'R': 'lightslategray',
-            b'C': 'black',
-            b'G': 'gold',
+            b'S': 'black',
+            b'R': 'blue',
+            b'C': 'darkred',
+            b'G': 'green',
         }
 
     def directions(self):
+
         return {
             0: '⬆',
             1: '➡',
             2: '⬇',
-            3: '⬅'
+            3: '⬅',
+            4: '',
         }
 
     def new_instance(self):
-        return WindyCliffWalkingEnv(wind_prob=self.wind_prob)
-
+        return WindyCliffWalkingEnv(wind_prob=self.wind_prob, step_rew=self.step_rew, fall_rew=self.fall_rew,
+                                    goal_rew=self.goal_rew)
